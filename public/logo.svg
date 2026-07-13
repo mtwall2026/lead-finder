@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 390">
+  <defs>
+    <!-- 3D sphere gradients — offset highlight for depth -->
+    <radialGradient id="gc" cx="36%" cy="26%" r="62%">
+      <stop offset="0%"   stop-color="#90d8ff"/>
+      <stop offset="18%"  stop-color="#3888f0"/>
+      <stop offset="50%"  stop-color="#0848d0"/>
+      <stop offset="78%"  stop-color="#022898"/>
+      <stop offset="100%" stop-color="#000e60"/>
+    </radialGradient>
+    <radialGradient id="gl" cx="38%" cy="28%" r="60%">
+      <stop offset="0%"   stop-color="#68c8ff"/>
+      <stop offset="22%"  stop-color="#1e72e8"/>
+      <stop offset="55%"  stop-color="#0438b8"/>
+      <stop offset="100%" stop-color="#000c58"/>
+    </radialGradient>
+    <radialGradient id="gr" cx="40%" cy="30%" r="60%">
+      <stop offset="0%"   stop-color="#60c0ff"/>
+      <stop offset="25%"  stop-color="#1868e0"/>
+      <stop offset="58%"  stop-color="#0330b0"/>
+      <stop offset="100%" stop-color="#000a54"/>
+    </radialGradient>
+    <radialGradient id="gb" cx="44%" cy="34%" r="58%">
+      <stop offset="0%"   stop-color="#40a8f0"/>
+      <stop offset="35%"  stop-color="#0848c8"/>
+      <stop offset="100%" stop-color="#00085a"/>
+    </radialGradient>
+
+    <!-- Silver ring — outer chrome -->
+    <linearGradient id="gring" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#4a5868"/>
+      <stop offset="12%"  stop-color="#9aaabb"/>
+      <stop offset="28%"  stop-color="#ccdae8"/>
+      <stop offset="45%"  stop-color="#eef6ff"/>
+      <stop offset="62%"  stop-color="#d0dde8"/>
+      <stop offset="80%"  stop-color="#8898a8"/>
+      <stop offset="100%" stop-color="#3a4858"/>
+    </linearGradient>
+    <!-- Silver ring — inner dark groove -->
+    <linearGradient id="gring2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#10181e" stop-opacity="0.95"/>
+      <stop offset="25%"  stop-color="#384858" stop-opacity="0.8"/>
+      <stop offset="55%"  stop-color="#586878" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#10181e" stop-opacity="0.95"/>
+    </linearGradient>
+    <!-- Silver ring — highlight edge top -->
+    <linearGradient id="gring3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="35%"  stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="50%"  stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="65%"  stop-color="#ffffff" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Arrow -->
+    <linearGradient id="garr" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#e8f2fa"/>
+      <stop offset="35%"  stop-color="#f8fcff"/>
+      <stop offset="65%"  stop-color="#b8c8d8"/>
+      <stop offset="100%" stop-color="#7888a0"/>
+    </linearGradient>
+
+    <!-- Circuit node glow -->
+    <radialGradient id="gnode" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="35%"  stop-color="#a0e8ff"/>
+      <stop offset="75%"  stop-color="#28a8ff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#1880ff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Drop shadow for cloud mass -->
+    <filter id="fshadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="5" dy="10" stdDeviation="12" flood-color="#000840" flood-opacity="0.55"/>
+    </filter>
+    <!-- Glow for circuit -->
+    <filter id="fglow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Ring glow -->
+    <filter id="fring" x="-10%" y="-40%" width="120%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- ═══ RING BACK HALF (behind cloud) ═══ -->
+  <!-- perimeter ≈ 2π√((165²+40²)/2) ≈ 752, half ≈ 376 -->
+  <ellipse cx="218" cy="218" rx="165" ry="40" fill="none"
+    stroke="url(#gring)" stroke-width="16"
+    stroke-dasharray="376 376" stroke-dashoffset="376"/>
+  <ellipse cx="218" cy="218" rx="165" ry="40" fill="none"
+    stroke="url(#gring2)" stroke-width="7"
+    stroke-dasharray="376 376" stroke-dashoffset="376"/>
+  <ellipse cx="218" cy="216" rx="165" ry="40" fill="none"
+    stroke="url(#gring3)" stroke-width="3"
+    stroke-dasharray="376 376" stroke-dashoffset="376"/>
+
+  <!-- ═══ CLOUD SPHERES — back to front ═══ -->
+  <g filter="url(#fshadow)">
+    <!-- back-left -->
+    <circle cx="128" cy="218" r="52" fill="url(#gb)"/>
+    <!-- left -->
+    <circle cx="162" cy="200" r="68" fill="url(#gl)"/>
+    <!-- right -->
+    <circle cx="282" cy="204" r="74" fill="url(#gr)"/>
+    <!-- center-top (dominant) -->
+    <circle cx="218" cy="146" r="90" fill="url(#gc)"/>
+  </g>
+
+  <!-- ═══ CIRCUIT TRACES ═══ -->
+  <g filter="url(#fglow)">
+    <!-- Trace lines -->
+    <polyline
+      points="158,196 176,196 194,178 216,178 232,164 260,164"
+      fill="none" stroke="#30b0f8" stroke-width="2.8"
+      stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="216" y1="178" x2="216" y2="191"
+      stroke="#30b0f8" stroke-width="2.2" stroke-linecap="round"/>
+
+    <!-- Nodes -->
+    <circle cx="158" cy="196" r="9"  fill="url(#gnode)"/>
+    <circle cx="158" cy="196" r="4.5" fill="#88e0ff"/>
+    <circle cx="158" cy="196" r="2"  fill="#ffffff"/>
+
+    <circle cx="194" cy="178" r="7"  fill="url(#gnode)"/>
+    <circle cx="194" cy="178" r="3.5" fill="#a0e8ff"/>
+
+    <circle cx="216" cy="178" r="6"  fill="url(#gnode)"/>
+    <circle cx="216" cy="178" r="3"  fill="#b0ecff"/>
+
+    <circle cx="216" cy="191" r="5"  fill="url(#gnode)"/>
+    <circle cx="216" cy="191" r="2.5" fill="#98e4ff"/>
+
+    <!-- Terminal node — brightest -->
+    <circle cx="260" cy="164" r="11" fill="url(#gnode)"/>
+    <circle cx="260" cy="164" r="5.5" fill="#c0f4ff"/>
+    <circle cx="260" cy="164" r="2.5" fill="#ffffff"/>
+  </g>
+
+  <!-- ═══ RING FRONT HALF (over cloud) ═══ -->
+  <g filter="url(#fring)">
+    <ellipse cx="218" cy="218" rx="165" ry="40" fill="none"
+      stroke="url(#gring)" stroke-width="16"
+      stroke-dasharray="376 376" stroke-dashoffset="0"/>
+    <ellipse cx="218" cy="218" rx="165" ry="40" fill="none"
+      stroke="url(#gring2)" stroke-width="7"
+      stroke-dasharray="376 376" stroke-dashoffset="0"/>
+    <ellipse cx="218" cy="216" rx="165" ry="40" fill="none"
+      stroke="url(#gring3)" stroke-width="3"
+      stroke-dasharray="376 376" stroke-dashoffset="0"/>
+  </g>
+
+  <!-- ═══ ARROW TIP ═══ -->
+  <g transform="translate(380, 208) rotate(-11)">
+    <polygon points="0,12  44,12  30,0  34,12  30,24  44,12" fill="url(#garr)" stroke="#7890a8" stroke-width="0.8" stroke-linejoin="round"/>
+    <polygon points="0,12 44,12 30,0"  fill="#f0f8ff" opacity="0.55"/>
+    <polygon points="0,15 6,12 0,9"   fill="#283840" opacity="0.4"/>
+  </g>
+</svg>
