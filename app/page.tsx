@@ -33,6 +33,11 @@ interface CRMTask {
   id: string; title: string; dueDate: string; done: boolean;
 }
 
+interface TeamSuggestion {
+  name: string; title: string; tier: number; tierLabel: string;
+  email: string | null; verified: boolean; status?: string; added?: boolean;
+}
+
 interface LeadData {
   stage: Stage; dealValue: number; probability: number;
   contacts: CRMContact[]; activities: Activity[]; tasks: CRMTask[];
@@ -206,6 +211,7 @@ export default function Home() {
   // Enrichment
   const [enriching, setEnriching] = useState<string | null>(null);
   const [findingEmail, setFindingEmail] = useState<string | null>(null);
+  const [teamSuggestions, setTeamSuggestions] = useState<Record<string, TeamSuggestion[]>>({});
 
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -286,32 +292,41 @@ export default function Home() {
     finally { setEnriching(null); }
   };
 
-  const findVerifiedEmail = async (firm: Firm) => {
+  const findTeamContacts = async (firm: Firm) => {
     setFindingEmail(firm.id);
     try {
-      const res = await fetch('/api/find-coo-email', {
+      const res = await fetch('/api/find-team-contacts', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ firmName: firm.displayName.text, website: firm.websiteUri, address: firm.formattedAddress }),
       });
       const data = await res.json();
       if (data.error) { alert(data.error); return; }
-      if (!data.email) { alert(data.message ?? 'No email could be found.'); return; }
-      if (!data.verified) {
-        alert(`Guessed ${data.contactPerson ? `${data.contactPerson} — ` : ''}${data.email}, but it could not be verified as deliverable (status: ${data.status}). Not auto-filled — add it manually if you want to use it.`);
-        return;
-      }
+      const found: TeamSuggestion[] = data.contacts ?? [];
+      if (!found.length) { alert('No named staff contacts could be identified for this firm.'); return; }
+
+      // Auto-add verified contacts (skip ones already present by email); leave the rest as suggestions to add manually.
       const lead = getLead(leads, firm.id);
-      const contacts = lead.contacts.length ? [...lead.contacts] : [];
-      const primaryIdx = contacts.findIndex(c => c.isPrimary);
-      const contactPatch = { email: data.email, emailVerified: true, ...(data.contactPerson ? { name: data.contactPerson } : {}), ...(data.title ? { title: data.title } : {}) };
-      if (primaryIdx >= 0) {
-        contacts[primaryIdx] = { ...contacts[primaryIdx], ...contactPatch };
-      } else {
-        contacts.push({ id: uid(), name: data.contactPerson ?? '', title: data.title ?? '', email: data.email, phone: '', linkedIn: '', isPrimary: true, emailVerified: true });
-      }
+      const contacts = [...lead.contacts];
+      const existingEmails = new Set(contacts.map(c => c.email.toLowerCase()).filter(Boolean));
+      const marked = found.map(s => {
+        if (s.verified && s.email && !existingEmails.has(s.email.toLowerCase())) {
+          contacts.push({ id: uid(), name: s.name, title: s.title, email: s.email, phone: '', linkedIn: '', isPrimary: contacts.length === 0, emailVerified: true });
+          existingEmails.add(s.email.toLowerCase());
+          return { ...s, added: true };
+        }
+        return { ...s, added: s.verified && !!s.email };
+      });
       updateLead(firm.id, { contacts });
-    } catch (e) { alert('Email lookup failed: ' + String(e)); }
+      setTeamSuggestions(prev => ({ ...prev, [firm.id]: marked }));
+    } catch (e) { alert('Team lookup failed: ' + String(e)); }
     finally { setFindingEmail(null); }
+  };
+
+  const addSuggestedContact = (firm: Firm, s: TeamSuggestion) => {
+    const lead = getLead(leads, firm.id);
+    const contacts = [...lead.contacts, { id: uid(), name: s.name, title: s.title, email: s.email ?? '', phone: '', linkedIn: '', isPrimary: lead.contacts.length === 0, emailVerified: s.verified }];
+    updateLead(firm.id, { contacts });
+    setTeamSuggestions(prev => ({ ...prev, [firm.id]: (prev[firm.id] ?? []).map(x => x === s ? { ...x, added: true } : x) }));
   };
 
   const generateScript = async (firm: Firm, type: 'call' | 'email' | 'linkedin') => {
@@ -793,10 +808,10 @@ export default function Home() {
                           className={`${BTN_GHOST} hover:text-emerald-400 hover:border-emerald-500/50 disabled:opacity-50`}>
                           {enriching === firm.id ? '🔍 Searching…' : '🔍 Find Contact'}
                         </button>
-                        <button onClick={() => findVerifiedEmail(firm)} disabled={findingEmail === firm.id}
-                          title="Guess the COO's email from the company domain and verify it's deliverable before filling it in"
+                        <button onClick={() => findTeamContacts(firm)} disabled={findingEmail === firm.id}
+                          title="Find multiple contacts at this firm (office manager, IT manager, owner, etc.), guess their emails from the domain, and verify deliverability"
                           className={`${BTN_GHOST} hover:text-emerald-400 hover:border-emerald-500/50 disabled:opacity-50`}>
-                          {findingEmail === firm.id ? '🎯 Verifying…' : '🎯 Find & Verify COO Email'}
+                          {findingEmail === firm.id ? '🎯 Multi-threading…' : '🎯 Find & Verify Team Emails'}
                         </button>
                         <button onClick={() => {
                           const lead_ = getLead(leads, firm.id);
@@ -844,6 +859,26 @@ export default function Home() {
                         </div>
                       )
                     }
+                    {(teamSuggestions[firm.id]?.length ?? 0) > 0 && (
+                      <div className="mt-3 pt-3 border-t border-blue-100/60">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Ranked by likely response</p>
+                        <div className="space-y-1.5">
+                          {teamSuggestions[firm.id].map((s, si) => (
+                            <div key={si} className="flex items-center gap-2 flex-wrap bg-white border border-blue-100 rounded-lg px-3 py-2 text-xs">
+                              <span className="font-semibold text-gray-900">{s.name}</span>
+                              <span className="text-gray-500">{s.title}</span>
+                              <span className="text-gray-400 italic flex-1 min-w-40">{s.tierLabel}</span>
+                              {s.email
+                                ? <span className={s.verified ? 'text-emerald-700' : 'text-amber-700'}>{s.email} {s.verified ? '✓ verified' : `(${s.status ?? 'unverified'})`}</span>
+                                : <span className="text-gray-400">no email found</span>}
+                              {s.added
+                                ? <span className="text-gray-400">Added</span>
+                                : s.email && <button onClick={() => addSuggestedContact(firm, s)} className="text-blue-500 hover:text-[#0057e7] font-medium">+ Add</button>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Activity Timeline */}
