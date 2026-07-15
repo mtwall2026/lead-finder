@@ -22,6 +22,7 @@ interface Firm {
 interface CRMContact {
   id: string; name: string; title: string;
   email: string; phone: string; linkedIn: string; isPrimary: boolean;
+  emailVerified?: boolean;
 }
 
 interface Activity {
@@ -204,6 +205,7 @@ export default function Home() {
 
   // Enrichment
   const [enriching, setEnriching] = useState<string | null>(null);
+  const [findingEmail, setFindingEmail] = useState<string | null>(null);
 
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -282,6 +284,34 @@ export default function Home() {
       updateLead(firm.id, { contacts });
     } catch (e) { alert('Enrichment failed: ' + String(e)); }
     finally { setEnriching(null); }
+  };
+
+  const findVerifiedEmail = async (firm: Firm) => {
+    setFindingEmail(firm.id);
+    try {
+      const res = await fetch('/api/find-coo-email', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ firmName: firm.displayName.text, website: firm.websiteUri, address: firm.formattedAddress }),
+      });
+      const data = await res.json();
+      if (data.error) { alert(data.error); return; }
+      if (!data.email) { alert(data.message ?? 'No email could be found.'); return; }
+      if (!data.verified) {
+        alert(`Guessed ${data.contactPerson ? `${data.contactPerson} — ` : ''}${data.email}, but it could not be verified as deliverable (status: ${data.status}). Not auto-filled — add it manually if you want to use it.`);
+        return;
+      }
+      const lead = getLead(leads, firm.id);
+      const contacts = lead.contacts.length ? [...lead.contacts] : [];
+      const primaryIdx = contacts.findIndex(c => c.isPrimary);
+      const contactPatch = { email: data.email, emailVerified: true, ...(data.contactPerson ? { name: data.contactPerson } : {}), ...(data.title ? { title: data.title } : {}) };
+      if (primaryIdx >= 0) {
+        contacts[primaryIdx] = { ...contacts[primaryIdx], ...contactPatch };
+      } else {
+        contacts.push({ id: uid(), name: data.contactPerson ?? '', title: data.title ?? '', email: data.email, phone: '', linkedIn: '', isPrimary: true, emailVerified: true });
+      }
+      updateLead(firm.id, { contacts });
+    } catch (e) { alert('Email lookup failed: ' + String(e)); }
+    finally { setFindingEmail(null); }
   };
 
   const generateScript = async (firm: Firm, type: 'call' | 'email' | 'linkedin') => {
@@ -763,6 +793,11 @@ export default function Home() {
                           className={`${BTN_GHOST} hover:text-emerald-400 hover:border-emerald-500/50 disabled:opacity-50`}>
                           {enriching === firm.id ? '🔍 Searching…' : '🔍 Find Contact'}
                         </button>
+                        <button onClick={() => findVerifiedEmail(firm)} disabled={findingEmail === firm.id}
+                          title="Guess the COO's email from the company domain and verify it's deliverable before filling it in"
+                          className={`${BTN_GHOST} hover:text-emerald-400 hover:border-emerald-500/50 disabled:opacity-50`}>
+                          {findingEmail === firm.id ? '🎯 Verifying…' : '🎯 Find & Verify COO Email'}
+                        </button>
                         <button onClick={() => {
                           const lead_ = getLead(leads, firm.id);
                           const newContact = { id: uid(), name:'', title:'', email:'', phone:'', linkedIn:'', isPrimary: lead_.contacts.length === 0 };
@@ -790,9 +825,12 @@ export default function Home() {
                                   className="text-xs text-gray-300 hover:text-red-500 transition-colors">✕</button>
                               </div>
                               <div className="flex gap-2 flex-wrap">
-                                <input value={c.email} onChange={e => { const cs = [...lead.contacts]; cs[ci] = { ...cs[ci], email: e.target.value }; updateLead(firm.id, { contacts: cs }); }}
+                                <input value={c.email} onChange={e => { const cs = [...lead.contacts]; cs[ci] = { ...cs[ci], email: e.target.value, emailVerified: false }; updateLead(firm.id, { contacts: cs }); }}
                                   placeholder="email@company.com" type="email"
                                   className="bg-[#f8faff] border border-blue-100 rounded-lg px-2.5 py-1.5 text-xs text-gray-600 placeholder-gray-300 outline-none focus:border-[#0057e7] flex-1 min-w-36" />
+                                {c.emailVerified && c.email && (
+                                  <span title="Verified deliverable via Hunter.io" className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1 rounded-lg font-medium self-center">✓ Verified</span>
+                                )}
                                 <input value={c.phone} onChange={e => { const cs = [...lead.contacts]; cs[ci] = { ...cs[ci], phone: e.target.value }; updateLead(firm.id, { contacts: cs }); }}
                                   placeholder="Phone" type="tel"
                                   className="bg-[#f8faff] border border-blue-100 rounded-lg px-2.5 py-1.5 text-xs text-gray-600 placeholder-gray-300 outline-none focus:border-[#0057e7] w-36" />
